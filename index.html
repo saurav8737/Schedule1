@@ -107,13 +107,16 @@
     <button onclick="addRow()">Add Row</button>
 
     <div class="remarks-section">
-        <h2>Remarks:</h2>
+        <p>Remarks:</p>
         <textarea id="remarks" rows="4" placeholder="Enter your remarks here..."></textarea>
     </div>
 
-    <button onclick="downloadPDF()">Download PDF</button>
+    <button onclick="downloadPDF()">Generate PDF</button>
 
+    <!-- Add jsPDF and jsPDF-AutoTable from CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.13/jspdf.plugin.autotable.min.js"></script>
+
     <script>
         function addRow() {
             var table = document.getElementById("scheduleTable").getElementsByTagName("tbody")[0];
@@ -155,13 +158,15 @@
 
             // Add title and date
             const dateInput = document.getElementById("scheduleDate").value || "N/A";
+            doc.setFontSize(16);
             doc.text("Dynamic Schedule", 20, 20);
+            doc.setFontSize(12);
             doc.text("Schedule Date: " + dateInput, 20, 30);
 
-            // Add table contents
+            // Prepare table data
             const table = document.getElementById('scheduleTable');
             const rows = table.querySelectorAll('tbody tr');
-            let yPos = 50; // Initial Y position for table contents
+            const tableData = [];
 
             rows.forEach(function(row) {
                 const timeInputs = row.querySelectorAll('input[type="time"]');
@@ -170,13 +175,23 @@
                 const activityInput = row.querySelector('input[type="text"]');
                 const activity = activityInput.value || activityInput.placeholder;
 
-                doc.text(startTime + " to " + endTime + " - " + activity, 20, yPos);
-                yPos += 10;
+                tableData.push([startTime + " to " + endTime, activity]);
+            });
+
+            // Add colorful table using jsPDF-AutoTable
+            doc.autoTable({
+                head: [['Time', 'Activity']],
+                body: tableData,
+                startY: 40,
+                theme: 'grid',
+                headStyles: { fillColor: [76, 175, 80] }, // Green header
+                alternateRowStyles: { fillColor: [240, 240, 240] }, // Light grey rows
+                styles: { fontSize: 10, cellPadding: 5 }
             });
 
             // Add remarks
-            const remarks = document.getElementById('remarks').value;
-            doc.text("Remarks: " + (remarks || "N/A"), 20, yPos + 10);
+            const remarks = document.getElementById('remarks').value || "N/A";
+            doc.text("Remarks: " + remarks, 20, doc.lastAutoTable.finalY + 10);
 
             // Save the generated PDF
             doc.save("schedule.pdf");
