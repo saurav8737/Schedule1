@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Schedule Generator</title>
+    <title>Dynamic Schedule</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -79,10 +79,10 @@
 <body>
 
     <div id="header">
-        <img src="https://www.google.com/search?sca_esv=6298c17d4a9e2aad&rlz=1C1CHBF_enIN1126IN1126&sxsrf=ADLYWIKuVm7g_qoxv1td-jfZuGI1az6RjQ:1729358528892&q=emblem+of+india&udm=2&fbs=AEQNm0CRraR4AFMOJtZDUPiZk_hDEGW7EwGJ8ltzg0fUf3C5XQ77d2-1iMSp3wdEYbyzpZPckXLsN0SSnUI7riz2SzptL-YZRKwTRF7Xifa47LncGyr7rGjLkYrnwMvuVEb7a9MvInW5r88I7Lc0nmNJqOE4vUiGS7BB3h3m_2EG1oeH6vlYpuWBpOWXOnggXIquMa6F1FY72zfWuGF9q1W5c_6AXEexig&sa=X&ved=2ahUKEwj77LbG-pqJAxWJ3jQHHVqiMNoQtKgLegQIEBAB&biw=1366&bih=617&dpr=1#vhid=tK2JsGlf0CaFZM&vssid=mosaic">
+        <img src="/images/smj1.jpg" alt="Emblem of India">
         <h1>Dynamic Schedule</h1>
         <div>
-            <label for="scheduleDate"> </label>
+            <label for="scheduleDate">Schedule Date: </label>
             <input type="date" id="scheduleDate">
         </div>
     </div>
@@ -90,7 +90,7 @@
     <table id="scheduleTable">
         <thead>
             <tr>
-                <th>Time </th>
+                <th>Time</th>
                 <th>Activity</th>
                 <th>Actions</th>
             </tr>
@@ -107,12 +107,13 @@
     <button onclick="addRow()">Add Row</button>
 
     <div class="remarks-section">
-        <p>Remarks:</p>
+        <h2>Remarks:</h2>
         <textarea id="remarks" rows="4" placeholder="Enter your remarks here..."></textarea>
     </div>
 
-    <button onclick="prepareForPrint()">Print Schedule</button>
+    <button onclick="downloadPDF()">Download PDF</button>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
     <script>
         function addRow() {
             var table = document.getElementById("scheduleTable").getElementsByTagName("tbody")[0];
@@ -148,52 +149,37 @@
             row.parentNode.removeChild(row);
         }
 
-        function prepareForPrint() {
-            var table = document.getElementById("scheduleTable");
-            var rows = table.querySelectorAll('tbody tr');
-            
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Add title and date
+            const dateInput = document.getElementById("scheduleDate").value || "N/A";
+            doc.text("Dynamic Schedule", 20, 20);
+            doc.text("Schedule Date: " + dateInput, 20, 30);
+
+            // Add table contents
+            const table = document.getElementById('scheduleTable');
+            const rows = table.querySelectorAll('tbody tr');
+            let yPos = 50; // Initial Y position for table contents
+
             rows.forEach(function(row) {
-                var timeInputs = row.querySelectorAll('input[type="time"]');
-                var startTime = timeInputs[0].value || 'N/A';
-                var endTime = timeInputs[1].value || 'N/A';
+                const timeInputs = row.querySelectorAll('input[type="time"]');
+                const startTime = timeInputs[0].value || "N/A";
+                const endTime = timeInputs[1].value || "N/A";
+                const activityInput = row.querySelector('input[type="text"]');
+                const activity = activityInput.value || activityInput.placeholder;
 
-                // Update time cell to display 'startTime to endTime'
-                var timeCell = row.cells[0];
-                timeCell.innerHTML = startTime + " to " + endTime;
-
-                // Capture activity input value
-                var activityInput = row.querySelector('input[type="text"]');
-                var activity = activityInput.value || activityInput.placeholder;
-                
-                // Update activity cell to plain text
-                var activityCell = row.cells[1];
-                activityCell.innerHTML = activity;
+                doc.text(startTime + " to " + endTime + " - " + activity, 20, yPos);
+                yPos += 10;
             });
 
-            // Add date to the print view
-            var dateInput = document.getElementById("scheduleDate").value;
-            var dateElement = document.createElement("h2");
-            dateElement.textContent = "Schedule Date: " + (dateInput ? dateInput : "N/A");
-            document.getElementById("header").appendChild(dateElement);
+            // Add remarks
+            const remarks = document.getElementById('remarks').value;
+            doc.text("Remarks: " + (remarks || "N/A"), 20, yPos + 10);
 
-            // Print the schedule
-            window.print();
-
-            // Restore inputs after print (optional, if you want to go back to editable form after printing)
-            rows.forEach(function(row) {
-                var timeCell = row.cells[0];
-                var timeInputs = row.querySelectorAll('input[type="time"]');
-                var startTime = timeCell.textContent.split(" to ")[0].trim();
-                var endTime = timeCell.textContent.split(" to ")[1].trim();
-                timeCell.innerHTML = '<input type="time" value="' + startTime + '"> to <input type="time" value="' + endTime + '">';
-
-                var activityCell = row.cells[1];
-                var activityText = activityCell.textContent;
-                activityCell.innerHTML = '<input type="text" value="' + activityText + '" placeholder="Enter activity">';
-            });
-
-            // Remove the appended date element after printing
-            document.getElementById("header").removeChild(dateElement);
+            // Save the generated PDF
+            doc.save("schedule.pdf");
         }
     </script>
 
